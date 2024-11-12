@@ -1,12 +1,17 @@
-name: Arduino and C# CI
+name: Arduino CI Test
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
 
 jobs:
-  build-arduino:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Check out repository
+    - name: Checkout repository
       uses: actions/checkout@v2
 
     - name: Set up Arduino CLI
@@ -14,25 +19,23 @@ jobs:
       with:
         version: latest
 
-    - name: Compile Arduino Code
+    - name: Install Arduino dependencies
       run: |
         arduino-cli core update-index
-        arduino-cli core install arduino:avr
+        arduino-cli core install arduino:avr  # Change to your board's core if necessary
+
+    - name: Compile Sketch
+      run: |
         arduino-cli compile --fqbn arduino:avr:uno ../../Server/Server.ino
-
-  build-csharp:
-    runs-on: windows-latest
-    steps:
-    - name: Check out repository
-      uses: actions/checkout@v2
-
-    - name: Set up .NET
-      uses: actions/setup-dotnet@v1
+    
+    - name: Run Python Test
+      uses: actions/setup-python@v2
       with:
-        dotnet-version: '6.0.x'
+        python-version: '3.x'
 
-    - name: Restore dependencies
-      run: dotnet restore ../../Client/Client.csproj
+    - name: Install PySerial
+      run: |
+        python -m pip install pyserial pytest
 
-    - name: Build C# Client
-      run: dotnet build ../../Client/Client.csproj --configuration Release
+    - name: Run Serial Communication Test
+      run: python -m pytest test_serial.py
